@@ -71,7 +71,7 @@ Not much. Just try and run this program with --help.
 License
 -------
 
-This program is licensed under the WTFPL license. See copying.txt for details.
+This program is licensed under the WTFPL license. See LICENSE.txt for details.
 
 """
 __version__ = '1.0'
@@ -269,10 +269,8 @@ if __name__ == '__main__':
 
     installed_pythons = detect_all_python_installs(args.excluded_patterns)
 
-    print installed_pythons
-
     print("--- Found {0} results.".format(len(installed_pythons)))
-    filenames = (args.outfile_basename+ext for ext in (".sh", ".fish"))
+    filenames = [args.outfile_basename+ext for ext in (".sh", ".fish")]
     shell_filename, fish_filename = filenames
     print("--- Saving selectors to {0}".format(filenames))
 
