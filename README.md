@@ -51,19 +51,20 @@ Edit your *~/.zshrc* file to make it look like this:
 
     # ~/.zshrc
     ...
-    export OLD_PATH=$PATH
     source $HOME/.python_switchers.sh
-    ...
     # Set the default version to use
     select_anaconda_161_x86_64
-    ...
+    # EOF
 
-Setting the `$OLD_PATH` variable in your init script is required.
+
+It is required that you put these lines at the end of your init script, so that
+all your other `$PATH` modifications will be taken into account.
+
 
 ## Pimp your prompt
 
 Once a python version is selected, a shell variable, called
-`$PROMPT_PYTHON_VERSION`, is defined. Use it at will in your `$PS1` variable.
+`$PROMPT_PYTHON_VERSION`, is defined. Use it at will in your `$PS1` or `$PROMPT` variable.
 Have a look [here](https://github.com/sevas/oh-my-zsh/blob/master/themes/prose.zsh-theme#L29-L39) for an example
 
 

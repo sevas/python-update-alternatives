@@ -13,7 +13,7 @@ Every generated function will follow this pattern:
     select_macpython_271()
     {
         echo "Setting environment for Python 2.7.1 -- MacPython"
-        export PATH="/Library/Frameworks/Python.framework/Versions/2.7/bin:${OLD_PATH}"
+        export PATH="/Library/Frameworks/Python.framework/Versions/2.7/bin:${PRISTINE_INIT_PATH}"
         export PROMPT_PYTHON_VERSION="MacPython 2.7.1"
     }
 
@@ -28,8 +28,6 @@ On MacOS X systems, use $HOME/.bash_profile for bash, and $HOME/.zshrc for zsh.
 
 .. code:: shell
 
-    VIRTUAL_ENV_DISABLE_PROMPT=1
-    export OLD_PATH=$PATH
     source $HOME/.python_switchers.sh
 
     # Setup the default python. update_python_switchers.py must have been
@@ -107,7 +105,7 @@ def generate_bash_select_func(python_filepath, version_string, prompt_string, ba
 select_{bash_func_name}()
 {{
     echo \"Setting environment for {version_string}\"
-    export PATH=\"{path}:${{OLD_PATH}}\"
+    export PATH=\"{path}:${{PRISTINE_INIT_PATH}}\"
     export PROMPT_PYTHON_VERSION="{prompt_string}"
 }}
 
@@ -128,7 +126,7 @@ def generate_fish_select_function(python_filepath, version_string, prompt_string
     return """\
 function select_{bash_func_name}
     printf \"Setting environment for {version_string}\"
-    set -gx PATH {path} $OLD_PATH
+    set -gx PATH {path} $PRISTINE_INIT_PATH
     set -gx PROMPT_PYTHON_VERSION "{prompt_string}"
 end
 
@@ -275,6 +273,10 @@ if __name__ == '__main__':
     print("--- Saving selectors to {0}".format(filenames))
 
     with open(shell_filename, 'w') as shell_file, open(fish_filename, 'w') as fish_file:
+
+        shell_file.write("export PRISTINE_INIT_PATH=$PATH")
+        fish_file.write("set -gx PRISTINE_INIT_PATH $PATH")
+
         for p in installed_pythons:
             full_version, prompt, bash_func_name = make_version_strings(p)
             print("--- Adding shell function to switch to {0:<50} shell function: {1:<50} (path: {2}".format(full_version, "select_"+bash_func_name+"()", p))
