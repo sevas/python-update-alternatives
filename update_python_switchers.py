@@ -274,8 +274,8 @@ if __name__ == '__main__':
 
     with open(shell_filename, 'w') as shell_file, open(fish_filename, 'w') as fish_file:
 
-        shell_file.write("export PRISTINE_INIT_PATH=$PATH")
-        fish_file.write("set -gx PRISTINE_INIT_PATH $PATH")
+        shell_file.write("export PRISTINE_INIT_PATH=$PATH\n")
+        fish_file.write("set -gx PRISTINE_INIT_PATH $PATH\n")
 
         for p in installed_pythons:
             full_version, prompt, bash_func_name = make_version_strings(p)
