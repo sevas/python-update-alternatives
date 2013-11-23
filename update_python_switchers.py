@@ -175,7 +175,7 @@ def is_python_executable(filepath, excluded_patterns):
     False
     """
 
-    if not is_python_filepath(filepath):
+    if not is_python_filepath(filepath) or not os.path.exists(filepath):
         return False
 
     for pattern in excluded_patterns:
@@ -261,6 +261,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Detects all python installations and creates bash functions to switch between them')
     parser.add_argument('-e', '--excluded-patterns', action='append', default=EXCLUDED_PATTERNS, help="Add a pattern (regex) to exclude when looking for python installations. Use as many as needed. (default: {0})".format(EXCLUDED_PATTERNS))
     parser.add_argument('-o', '--outfile-basename', action='store', default=DEFAULT_OUTFILE_BASENAME, help="Output file basename, without extension, for the generated shell functions (default: {0})".format("$HOME/.python_switchers.{sh,fish}"))
+    parser.add_argument('-d', '--dry-run', action='store_true', default=False, help="Only show the detected installations, don't write the shell files.")
     args = parser.parse_args()
 
     print("--- Searching all installed pythons, except those that match the following patterns: {0}".format(args.excluded_patterns))
@@ -268,23 +269,30 @@ if __name__ == '__main__':
     installed_pythons = detect_all_python_installs(args.excluded_patterns)
 
     print("--- Found {0} results.".format(len(installed_pythons)))
-    filenames = [args.outfile_basename+ext for ext in (".sh", ".fish")]
-    shell_filename, fish_filename = filenames
-    print("--- Saving selectors to {0}".format(filenames))
 
-    with open(shell_filename, 'w') as shell_file, open(fish_filename, 'w') as fish_file:
 
-        shell_file.write("export PRISTINE_INIT_PATH=$PATH\n")
-        fish_file.write("set -gx PRISTINE_INIT_PATH $PATH\n")
-
+    if args.dry_run:
         for p in installed_pythons:
-            full_version, prompt, bash_func_name = make_version_strings(p)
-            print("--- Adding shell function to switch to {0:<50} shell function: {1:<50} (path: {2}".format(full_version, "select_"+bash_func_name+"()", p))
-            bash_func = generate_bash_select_func(p, full_version, prompt, bash_func_name)
-            shell_file.write(bash_func)
+            full_version, prompt, _ = make_version_strings(p)
+            print "--- {:<50} (path: {})".format(full_version, p)
+    else:
+        filenames = [args.outfile_basename+ext for ext in (".sh", ".fish")]
+        shell_filename, fish_filename = filenames
+        print("--- Saving selectors to {0}".format(filenames))
 
-            fish_func = generate_fish_select_function(p, full_version, prompt, bash_func_name)
-            fish_file.write(fish_func)
+        with open(shell_filename, 'w') as shell_file, open(fish_filename, 'w') as fish_file:
+
+            shell_file.write("export PRISTINE_INIT_PATH=$PATH\n")
+            fish_file.write("set -gx PRISTINE_INIT_PATH $PATH\n")
+
+            for p in installed_pythons:
+                full_version, prompt, bash_func_name = make_version_strings(p)
+                print("--- Adding shell function to switch to {0:<50} shell function: {1:<50} (path: {2}".format(full_version, "select_"+bash_func_name+"()", p))
+                bash_func = generate_bash_select_func(p, full_version, prompt, bash_func_name)
+                shell_file.write(bash_func)
+
+                fish_func = generate_fish_select_function(p, full_version, prompt, bash_func_name)
+                fish_file.write(fish_func)
 
 
-    print("--- Selectors saved. Don't forget to source the adequate generated file to your .bashrc, .zshrc or fish.config file".format(filenames))
+        print("--- Selectors saved. Don't forget to source the adequate generated file to your .bashrc, .zshrc or fish.config file".format(filenames))
