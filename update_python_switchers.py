@@ -149,7 +149,7 @@ def is_python_filepath(filepath):
     return filepath.endswith("bin/python") or filepath.endswith("bin/python3")
 
 
-def is_python_executable(filepath, excluded_patterns):
+def is_python_executable(filepath, excluded_patterns, file_exists=os.path.exists):
     """Checks that a filepath is a python executable and that it does not match
        a list of patterns.
 
@@ -162,20 +162,20 @@ def is_python_executable(filepath, excluded_patterns):
 
     Examples
     --------
-    >>> is_python_executable("/usr/bin/python", [])
+    >>> is_python_executable("/usr/bin/python", [], file_exists=lambda x: True)
     True
 
-    >>> is_python_executable("/usr/bin/python", ["/usr/.*"])
+    >>> is_python_executable("/usr/bin/python", ["/usr/.*"], file_exists=lambda x: True)
     False
 
-    >>> is_python_executable("/home/aneiko/.virtualenvs/django_sandbox/bin/python", [])
+    >>> is_python_executable("/home/aneiko/.virtualenvs/django_sandbox/bin/python", [], file_exists=lambda x: True)
     True
 
-    >>> is_python_executable("/home/aneiko/.virtualenvs/django_sandbox/bin/python", [".*virtualenv.*"])
+    >>> is_python_executable("/home/aneiko/.virtualenvs/django_sandbox/bin/python", [".*virtualenv.*"], file_exists=lambda x: True)
     False
     """
 
-    if not is_python_filepath(filepath) or not os.path.exists(filepath):
+    if not is_python_filepath(filepath) or not file_exists(filepath):
         return False
 
     for pattern in excluded_patterns:
