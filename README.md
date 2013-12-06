@@ -1,4 +1,7 @@
 
+[![Build Status](https://travis-ci.org/sevas/update_python_alternatives.png)](https://travis-ci.org/sevas/update_python_alternatives)
+
+
 # What is this?
 
 
