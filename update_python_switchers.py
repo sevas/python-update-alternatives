@@ -274,7 +274,7 @@ if __name__ == '__main__':
     if args.dry_run:
         for p in installed_pythons:
             full_version, prompt, _ = make_version_strings(p)
-            print "--- {:<50} (path: {})".format(full_version, p)
+            print "--- {:<50} (path: {0})".format(full_version, p)
     else:
         filenames = [args.outfile_basename+ext for ext in (".sh", ".fish")]
         shell_filename, fish_filename = filenames
