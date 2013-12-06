@@ -78,6 +78,9 @@ import os
 import subprocess
 import re
 import string
+import locale
+
+encoding = locale.getdefaultlocale()[1]
 
 SYSTEM_ROOT = "/System/Library/Frameworks/Python.framework"
 MACPYTHON_ROOT = "/Library/Frameworks/Python.framework"
@@ -87,7 +90,7 @@ def get_python_version(python_filepath):
     "Gets the version string of an installed python, using the -V flag"
     process = subprocess.Popen([python_filepath, '-V'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     _, stderr = process.communicate()
-    return stderr.strip()
+    return stderr.decode(encoding).strip()
 
 
 def generate_bash_select_func(python_filepath, version_string, prompt_string, bash_function_name):
@@ -188,14 +191,25 @@ def detect_all_python_installs(excluded_patterns):
     """Detects all the python installed on a Unix system. Filters out those who match given patterns"""
     p = subprocess.Popen(['locate', 'bin/python'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
-    results = stdout.split("\n")
+
+    results = stdout.decode(encoding).split("\n")
 
     return [each for each in results if is_python_executable(each, excluded_patterns)]
 
 
+ignored_chars = ':.()[]{}'
+
 def make_bash_func_string(s):
-    """Transforms a string into something suitable for a shell function. Removes or replace forbidden characters"""
-    bash_func_name = string.translate(s, None, ':.()[]{}').lower()
+    """Transforms a string into something suitable for a shell function. Removes or replace forbidden characters
+
+    >>> make_bash_func_string('MacPython 2.7.1')
+    'macpython_271'
+
+    >>> make_bash_func_string("Anaconda 1.6.1 (x86_64)")
+    'anaconda_161_x86_64'
+    """
+
+    bash_func_name = ''.join(each for each in s if each not in ignored_chars ).lower()
 
     for forbidden_char in ' -':
         bash_func_name = bash_func_name.replace(forbidden_char, "_")
@@ -274,7 +288,7 @@ if __name__ == '__main__':
     if args.dry_run:
         for p in installed_pythons:
             full_version, prompt, _ = make_version_strings(p)
-            print "--- {:<50} (path: {0})".format(full_version, p)
+            print("--- {0:<50} (path: {1})".format(full_version, p))
     else:
         filenames = [args.outfile_basename+ext for ext in (".sh", ".fish")]
         shell_filename, fish_filename = filenames
