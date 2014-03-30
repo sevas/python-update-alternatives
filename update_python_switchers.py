@@ -72,12 +72,11 @@ License
 This program is licensed under the WTFPL license. See LICENSE.txt for details.
 
 """
-__version__ = '1.0'
+__version__ = '1.2.0'
 
 import os
 import subprocess
 import re
-import string
 import locale
 
 encoding = locale.getdefaultlocale()[1]
@@ -89,8 +88,16 @@ MACPYTHON_ROOT = "/Library/Frameworks/Python.framework"
 def get_python_version(python_filepath):
     "Gets the version string of an installed python, using the -V flag"
     process = subprocess.Popen([python_filepath, '-V'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    _, stderr = process.communicate()
-    return stderr.decode(encoding).strip()
+    stdout, stderr = process.communicate()
+
+    # Since py3.4, it seems python dumps version number on stdout
+    # Oh well.
+    if stdout:
+        s = stdout
+    elif stderr:
+        s = stderr
+
+    return s.decode(encoding).strip()
 
 
 def generate_bash_select_func(python_filepath, version_string, prompt_string, bash_function_name):
@@ -98,10 +105,10 @@ def generate_bash_select_func(python_filepath, version_string, prompt_string, ba
        a particular python as the default one.
     """
     values = {
-        'path':            os.path.dirname(python_filepath),
-        'version_string':  version_string,
-        'prompt_string':   prompt_string,
-        'bash_func_name':  bash_func_name
+        'path': os.path.dirname(python_filepath),
+        'version_string': version_string,
+        'prompt_string': prompt_string,
+        'bash_func_name': bash_func_name
     }
 
     return """\
@@ -120,10 +127,10 @@ def generate_fish_select_function(python_filepath, version_string, prompt_string
        a particular python as the default one
     """
     values = {
-        'path':            os.path.dirname(python_filepath),
-        'version_string':  version_string,
-        'prompt_string':   prompt_string,
-        'bash_func_name':  bash_func_name
+        'path': os.path.dirname(python_filepath),
+        'version_string': version_string,
+        'prompt_string': prompt_string,
+        'bash_func_name': bash_func_name
     }
 
     return """\
@@ -134,7 +141,6 @@ function select_{bash_func_name}
 end
 
 """.format(**values)
-
 
 
 def is_python_filepath(filepath):
@@ -189,15 +195,16 @@ def is_python_executable(filepath, excluded_patterns, file_exists=os.path.exists
 
 def detect_all_python_installs(excluded_patterns):
     """Detects all the python installed on a Unix system. Filters out those who match given patterns"""
+    results = list()
     p = subprocess.Popen(['locate', 'bin/python'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
 
-    results = stdout.decode(encoding).split("\n")
+    results.extend(stdout.decode(encoding).split("\n"))
 
     return [each for each in results if is_python_executable(each, excluded_patterns)]
 
-
 ignored_chars = ':.()[]{}'
+
 
 def make_bash_func_string(s):
     """Transforms a string into something suitable for a shell function. Removes or replace forbidden characters
@@ -209,7 +216,7 @@ def make_bash_func_string(s):
     'anaconda_161_x86_64'
     """
 
-    bash_func_name = ''.join(each for each in s if each not in ignored_chars ).lower()
+    bash_func_name = ''.join(each for each in s if each not in ignored_chars).lower()
 
     for forbidden_char in ' -':
         bash_func_name = bash_func_name.replace(forbidden_char, "_")
@@ -239,7 +246,7 @@ def make_short_strings(version_string):
         return anaconda_version, make_bash_func_string(anaconda_version)
 
     if "MacPython" in version_string:
-        python_version =  version_string.split("--")[0].split("Python")[1].strip()
+        python_version = version_string.split("--")[0].split("Python")[1].strip()
         macpython_version = "MacPython " + python_version
         return macpython_version, make_bash_func_string(macpython_version)
 
@@ -250,15 +257,17 @@ def make_short_strings(version_string):
 
 
 def make_version_strings(python_filepath):
-    version_string = get_python_version(p)
+    version_string = get_python_version(python_filepath)
 
     if python_filepath.startswith(MACPYTHON_ROOT):
         version_string += " -- MacPython"
-        short_version_string, bash_func_name =  make_short_strings(version_string)
+        short_version_string, bash_func_name = make_short_strings(version_string)
         return version_string, short_version_string, bash_func_name
 
     elif python_filepath.startswith(SYSTEM_ROOT) or python_filepath.startswith('/usr'):
         version_string = "System " + version_string
+        if not version_string:
+            print("!!! could not extract version string for {}".format(python_filepath))
         short_version_string, bash_func_name = make_short_strings(version_string)
         return version_string, short_version_string, bash_func_name
 
@@ -284,13 +293,12 @@ if __name__ == '__main__':
 
     print("--- Found {0} results.".format(len(installed_pythons)))
 
-
     if args.dry_run:
         for p in installed_pythons:
             full_version, prompt, _ = make_version_strings(p)
             print("--- {0:<50} (path: {1})".format(full_version, p))
     else:
-        filenames = [args.outfile_basename+ext for ext in (".sh", ".fish")]
+        filenames = [args.outfile_basename + ext for ext in (".sh", ".fish")]
         shell_filename, fish_filename = filenames
         print("--- Saving selectors to {0}".format(filenames))
 
@@ -301,12 +309,18 @@ if __name__ == '__main__':
 
             for p in installed_pythons:
                 full_version, prompt, bash_func_name = make_version_strings(p)
-                print("--- Adding shell function to switch to {0:<50} shell function: {1:<50} (path: {2}".format(full_version, "select_"+bash_func_name+"()", p))
+
+                print("-" * 80)
+                print(" {0}{1:<50}".format("Adding shell function to switch to ", full_version, ""))
+                print(" {0:20}{1:50}".format("Shell function:", "select_" + bash_func_name + "()"))
+                print(" {0:20}{1:50}".format("Path:", p))
+                print("-" * 80)
+                print("")
+
                 bash_func = generate_bash_select_func(p, full_version, prompt, bash_func_name)
                 shell_file.write(bash_func)
 
                 fish_func = generate_fish_select_function(p, full_version, prompt, bash_func_name)
                 fish_file.write(fish_func)
-
 
         print("--- Selectors saved. Don't forget to source the adequate generated file to your .bashrc, .zshrc or fish.config file".format(filenames))
