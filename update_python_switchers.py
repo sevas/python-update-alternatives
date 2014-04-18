@@ -218,7 +218,7 @@ def make_bash_func_string(s):
 
     bash_func_name = ''.join(each for each in s if each not in ignored_chars).lower()
 
-    for forbidden_char in ' -':
+    for forbidden_char in ' -,!':
         bash_func_name = bash_func_name.replace(forbidden_char, "_")
 
     return bash_func_name
@@ -234,16 +234,16 @@ def make_short_strings(version_string):
     ('MacPython 2.7.1', 'macpython_271')
 
     >>> make_short_strings('Python 2.7.5 :: Anaconda 1.6.1 (x86_64)')
-    ('Anaconda 1.6.1 (x86_64)', 'anaconda_161_x86_64')
+    ('Anaconda', 'anaconda')
     """
 
     if "-- EPD" in version_string:
         epd_version = version_string.split('--')[1].strip()
         return epd_version, make_bash_func_string(epd_version)
 
-    if "Anaconda" in version_string:
-        anaconda_version = version_string.split('::')[1].strip()
-        return anaconda_version, make_bash_func_string(anaconda_version)
+    if "Anaconda" in version_string or "Continuum" in version_string:
+        return "Anaconda", 'anaconda'
+
 
     if "MacPython" in version_string:
         python_version = version_string.split("--")[0].split("Python")[1].strip()
@@ -295,8 +295,8 @@ if __name__ == '__main__':
 
     if args.dry_run:
         for p in installed_pythons:
-            full_version, prompt, _ = make_version_strings(p)
-            print("--- {0:<50} (path: {1})".format(full_version, p))
+            full_version, prompt, bash_func = make_version_strings(p)
+            print("--- {0:<50} (path: {1}) {2} {3}".format(full_version, p, prompt, bash_func))
     else:
         filenames = [args.outfile_basename + ext for ext in (".sh", ".fish")]
         shell_filename, fish_filename = filenames
